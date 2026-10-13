@@ -13,7 +13,7 @@
    };
    ```
 
-3. 変更を`main`または`master`ブランチにpushします。公開URLやスプレッドシートURLなどのシークレットはこの設定に含めないでください。公開CSVのデータは誰でも閲覧できます。
+3. 変更を`main`ブランチにpushします。公開URLやスプレッドシートURLなどのシークレットはこの設定に含めないでください。公開CSVのデータは誰でも閲覧できます。
 
 CSVの1行目には列名を設定してください。サイトは`matchId`、`teamMatchId`、`matchNumber`、`date`、`category`、`round`、`court`、`homeTeam`、`awayTeam`、`tieOrder`、`homePlayer`、`awayPlayer`、`homeClub`、`awayClub`、`homeScore1`〜`homeScore3`、`awayScore1`〜`awayScore3`、`status`を利用します。個人戦では`teamMatchId`を空欄にし、団体戦では同じ対戦の各試合に共通の`teamMatchId`を設定してください。ステータスには`進行中`または`終了`を指定できます。
 
