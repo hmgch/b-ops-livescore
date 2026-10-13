@@ -156,47 +156,51 @@
     return badge;
   }
 
-  function makeMatchCard(match) {
+  function makeMatchCard(match, isTeamMatch = false) {
     const card = element("article", "rounded-lg border border-slate-100 bg-white p-3 shadow-sm");
     const header = element(
       "div",
       "mb-2 flex items-center justify-between gap-2 border-b border-slate-50 pb-1 text-xs",
     );
     const labels = element("div", "flex flex-wrap items-center gap-2");
-    const category = match.category || "";
-    const number = match.matchNumber || "";
     const order = match.tieOrder ? `【${match.tieOrder}】` : "";
-    const matchLabel = category && number
-      ? `${order} ${category}-${number}`
-      : `${order} ${category || number}`;
+    if (isTeamMatch) {
+      if (order) {
+        appendBadge(labels, order, "text-xs font-bold text-slate-900 sm:text-sm");
+      }
+      header.append(labels);
+    } else {
+      const category = match.category || "";
+      const number = match.matchNumber || "";
+      const matchLabel = category && number
+        ? `${order} ${category}-${number}`
+        : `${order} ${category || number}`;
 
-    if (matchLabel.trim()) {
-      appendBadge(labels, matchLabel.trim(), "text-xs font-bold text-slate-900 sm:text-sm");
-    }
-    if (match.round) {
+      if (matchLabel.trim()) {
+        appendBadge(labels, matchLabel.trim(), "text-xs font-bold text-slate-900 sm:text-sm");
+      }
+      if (match.round) {
+        appendBadge(
+          labels,
+          match.round,
+          "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
+        );
+      }
+      const court = (match.court || "").trim();
       appendBadge(
         labels,
-        match.round,
+        court ? (court.endsWith("コート") ? court : `${court}コート`) : "未定",
         "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
       );
+      header.append(labels, makeStatusBadge(match.status));
     }
-    const court = (match.court || "").trim();
-    appendBadge(
-      labels,
-      court ? (court.endsWith("コート") ? court : `${court}コート`) : "未定",
-      "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
-    );
-    header.append(labels, makeStatusBadge(match.status));
     card.append(header);
 
     const { home, away, hasScore } = getGameWins(match);
-    const finished = match.status === "終了" && hasScore;
+    const finished = hasScore && (isTeamMatch || match.status === "終了");
     const content = element("div", "grid grid-cols-12 items-center gap-1 py-1 sm:gap-2");
     const homeSide = element("div", "col-span-4 min-w-0 pr-1 text-left");
     const homeName = element("div", "flex flex-wrap items-center justify-start");
-    if (finished && home > away) {
-      homeName.append(element("span", "ml-1 text-xs font-bold text-amber-500", "★"));
-    }
     homeName.append(
       element(
         "span",
@@ -254,9 +258,6 @@
         match.awayPlayer || "未定",
       ),
     );
-    if (finished && away > home) {
-      awayName.append(element("span", "mr-1 text-xs font-bold text-amber-500", "★"));
-    }
     awaySide.append(awayName);
     if (match.awayClub) {
       awaySide.append(element("div", "mt-0.5 truncate text-xs text-slate-400", match.awayClub));
@@ -268,7 +269,7 @@
   }
 
   function makeTeamCard(group, expandedTeamIds) {
-    const card = element("article", "rounded-xl border border-slate-100 bg-white p-4 shadow-sm");
+    const card = element("article", "rounded-xl border border-slate-100 bg-white shadow-sm");
     const summary = group.matches.reduce(
       (result, match) => {
         const wins = getGameWins(match);
@@ -277,34 +278,48 @@
         } else if (wins.hasScore && wins.away > wins.home) {
           result.away += 1;
         }
-        if (match.status === "終了") {
-          result.finished += 1;
-        }
         return result;
       },
-      { home: 0, away: 0, finished: 0 },
+      { home: 0, away: 0 },
     );
-    const isFinished = summary.finished === group.matches.length;
-    const header = element(
-      "div",
-      "mb-3 flex items-center justify-between border-b border-slate-50 pb-2 text-xs",
-    );
-    header.append(element("span", "text-sm font-bold text-slate-900", "団体戦"));
-    const groupStatus = isFinished ? "終了" : "進行中";
-    const statusBadge = makeStatusBadge(groupStatus);
-    if (!isFinished) {
-      statusBadge.append(document.createTextNode(` (${summary.finished}/${group.matches.length}試合)`));
+    const metadata = [];
+    const category = group.matches[0].category;
+    const round = group.matches[0].round;
+    const court = group.matches[0].court;
+    const matchNumbers = [...new Set(
+      group.matches.map((match) => (match.matchNumber || "").trim()).filter(Boolean),
+    )];
+    if (category) {
+      metadata.push(category);
     }
-    header.append(statusBadge);
-    card.append(header);
+    if (round) {
+      metadata.push(round);
+    }
+    if (court) {
+      metadata.push(court.endsWith("コート") ? court : `${court}コート`);
+    }
+    if (matchNumbers.length > 0) {
+      metadata.push(matchNumbers.map((number) => `第${number}試合`).join("・"));
+    }
 
-    const homeWon = isFinished && summary.home > summary.away;
-    const awayWon = isFinished && summary.away > summary.home;
+    const isExpanded = expandedTeamIds.has(group.id);
+    const summaryButton = element(
+      "button",
+      "w-full rounded-xl p-4 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
+    );
+    summaryButton.type = "button";
+    summaryButton.setAttribute("aria-expanded", String(isExpanded));
+    const detailsId = `team-details-${group.id}`;
+    summaryButton.setAttribute("aria-controls", detailsId);
+    if (metadata.length > 0) {
+      summaryButton.append(
+        element("div", "mb-3 border-b border-slate-50 pb-2 text-xs font-semibold text-slate-500", metadata.join(" ・ ")),
+      );
+    }
+    const homeWon = summary.home > summary.away;
+    const awayWon = summary.away > summary.home;
     const teams = element("div", "grid grid-cols-12 items-center gap-1 py-2 sm:gap-2");
     const homeTeam = element("div", "col-span-5 flex min-w-0 items-center gap-1 text-left");
-    if (homeWon) {
-      homeTeam.append(element("span", "text-xs font-bold text-amber-500", "★"));
-    }
     homeTeam.append(
       element(
         "span",
@@ -328,37 +343,33 @@
         group.awayTeam || "アウェイチーム",
       ),
     );
-    if (awayWon) {
-      awayTeam.append(element("span", "text-xs font-bold text-amber-500", "★"));
-    }
     teams.append(homeTeam, teamScore, awayTeam);
-    card.append(teams);
-
-    const isExpanded = expandedTeamIds.has(group.id);
-    const details = element("div", `mt-3 space-y-2 border-t border-dashed border-slate-200 pt-3${isExpanded ? "" : " hidden"}`);
-    group.matches.forEach((match) => details.append(makeMatchCard(match)));
-    const toggle = element(
-      "button",
-      "mt-3 flex w-full items-center justify-center gap-1 border-t border-slate-100 pt-2 text-xs font-semibold text-slate-500 hover:text-slate-800",
-      isExpanded
-        ? "▲ 詳細を閉じる"
-        : `▼ 対戦詳細・スコアを表示 (${group.matches.length}試合)`,
+    const affordance = element(
+      "span",
+      "mt-3 flex items-center justify-center gap-1 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-500",
+      `${isExpanded ? "▲" : "▼"} ${isExpanded ? "タップして詳細を閉じる" : `タップして対戦スコアを表示 (${group.matches.length}試合)`}`,
     );
-    toggle.type = "button";
-    toggle.setAttribute("aria-expanded", String(isExpanded));
-    toggle.addEventListener("click", () => {
+    summaryButton.append(teams, affordance);
+
+    const details = element(
+      "div",
+      `space-y-2 border-t border-dashed border-slate-200 px-4 pb-4 pt-3${isExpanded ? "" : " hidden"}`,
+    );
+    details.id = detailsId;
+    group.matches.forEach((match) => details.append(makeMatchCard(match, true)));
+    summaryButton.addEventListener("click", () => {
       const nowExpanded = details.classList.toggle("hidden") === false;
-      toggle.setAttribute("aria-expanded", String(nowExpanded));
-      toggle.textContent = nowExpanded
-        ? "▲ 詳細を閉じる"
-        : `▼ 対戦詳細・スコアを表示 (${group.matches.length}試合)`;
+      summaryButton.setAttribute("aria-expanded", String(nowExpanded));
+      affordance.textContent = nowExpanded
+        ? "▲ タップして詳細を閉じる"
+        : `▼ タップして対戦スコアを表示 (${group.matches.length}試合)`;
       if (nowExpanded) {
         expandedTeamIds.add(group.id);
       } else {
         expandedTeamIds.delete(group.id);
       }
     });
-    card.append(toggle, details);
+    card.append(summaryButton, details);
     return card;
   }
 
