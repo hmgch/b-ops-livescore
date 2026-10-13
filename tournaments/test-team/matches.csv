@@ -1,0 +1,4 @@
+matchId,teamMatchId,matchNumber,date,category,round,court,homeTeam,awayTeam,tieOrder,homePlayer,awayPlayer,homeClub,awayClub,homeScore1,homeScore2,homeScore3,awayScore1,awayScore2,awayScore3,status
+team-001-1,team-001,1,2026-10-13,男子団体,予選リーグ,第1コート,青葉クラブ,さくらクラブ,S1,山田 太郎,佐藤 次郎,青葉クラブ,さくらクラブ,21,17,,15,12,,終了
+team-001-2,team-001,2,2026-10-13,男子団体,予選リーグ,第1コート,青葉クラブ,さくらクラブ,D1,鈴木 一郎・高橋 健,田中 次郎・伊藤 誠,青葉クラブ,さくらクラブ,18,11,,21,8,,進行中
+team-001-3,team-001,3,2026-10-13,男子団体,予選リーグ,第1コート,青葉クラブ,さくらクラブ,S2,加藤 大輔,渡辺 翔,青葉クラブ,さくらクラブ,,,,,,,

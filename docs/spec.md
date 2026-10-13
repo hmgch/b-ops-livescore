@@ -18,6 +18,15 @@
 * **データベース**: Googleスプレッドシート（これまで通り管理者が編集）。
 * **データ配信**: スプレッドシートの標準機能「ウェブに公開（CSV形式）」を利用するため、GASのウェブアプリ（`script.google.com`）を経由しません。
 * **ホスティング**: GitHub Pages（完全無料、SSL対応、CDN配信のため高速かつ高可用性）。
+* **複数大会**: 1つのリポジトリ内に大会別ディレクトリを配置し、各大会に異なるURLと公開CSVを割り当てる。ルートURLは設定ファイルに基づく大会一覧を表示する。
+
+### 大会ごとのサイト分割
+
+大会ページのURLは`https://<ユーザー名>.github.io/<リポジトリ名>/tournaments/<大会ID>/`とする。大会IDは半角英数字とハイフンを使い、重複しない値にする。
+
+大会を追加する際は、`tournaments/<大会ID>/`を作成し、`tournaments/index.template.html`を`index.html`として、`tournaments/config.template.js`を`config.js`としてコピーする。大会別の`config.js`には大会名とその大会の公開CSV URLを設定する。大会ページはルートの`app.js`を共有するため、表示ロジックを大会ごとに複製しない。
+
+ルートの`index.html`は大会一覧を表示する。ルートの`config.js`には各大会の`id`、`name`、`visible`を設定し、`visible: true`の大会だけにリンクを表示する。非表示設定は一覧上のリンクを隠すだけであり、直接URLへのアクセスを制限しない。大会ページの設定と公開CSVは閲覧者に公開されるため、秘密情報を含めない。
 
 ## 2. Googleスプレッドシートの準備とCSV公開手順
 
@@ -387,5 +396,5 @@ GitHub Pagesに配置する `index.html` は、静的なHTML + Tailwind CSS + Va
 3. **ファイルのアップロード**: 上記のコードを `index.html` というファイル名で保存し、GitHubのリポジトリ画面からドラッグ＆ドロップでアップロードする。
 4. **GitHub Pagesの有効化**:
    * リポジトリの **\[Settings\] > \[Pages\]** を開く。
-   * **Build and deployment** の Source を **\[Deploy from a branch\]** にし、Branchを `main` (または `master`) / `/ (root)` に設定して \[Save\]。
-5. 数分後、発行された公開URL（例: `https://your-username.github.io/tournament-livescore/`）にアクセスすれば、**Googleアカウントやログインの要求が一切なく、すべてのスマートフォンやPCで一発で速報が表示**されます。
+   * **Build and deployment** の Source を **\[GitHub Actions\]** にする。
+5. `main`／`master`へのpush、またはActionsからの手動実行でデプロイする。トップページのURLに加え、大会ごとに`/tournaments/<大会ID>/`のURLで公開される。

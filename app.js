@@ -4,11 +4,18 @@
   const REFRESH_INTERVAL = 10_000;
   const config = window.LIVESCORE_CONFIG;
   const matchContainer = document.getElementById("match-container");
+  const siteTitle = document.getElementById("site-title");
   const lastUpdated = document.getElementById("last-updated");
   const connectionMessage = document.getElementById("connection-message");
   const statusDot = document.getElementById("status-dot");
   let refreshInProgress = false;
   let hasLoadedData = false;
+
+  if (config && typeof config.tournamentName === "string" && config.tournamentName.trim()) {
+    const title = config.tournamentName.trim();
+    siteTitle.textContent = title;
+    document.title = `${title} | 試合結果・速報`;
+  }
 
   function parseCSV(text) {
     const rows = [];

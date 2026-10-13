@@ -1,0 +1,4 @@
+matchId,teamMatchId,matchNumber,date,category,round,court,homeTeam,awayTeam,tieOrder,homePlayer,awayPlayer,homeClub,awayClub,homeScore1,homeScore2,homeScore3,awayScore1,awayScore2,awayScore3,status
+indiv-001,,1,2026-10-13,男子シングルス,決勝,第1コート,,,,山田 太郎,佐藤 次郎,青葉クラブ,さくらクラブ,21,18,,15,12,,終了
+indiv-002,,2,2026-10-13,女子シングルス,準決勝,第2コート,,,,鈴木 花子,高橋 美咲,みどりクラブ,青葉クラブ,18,9,,21,11,,進行中
+indiv-003,,3,2026-10-13,男子シングルス,準決勝,第3コート,,,,田中 一郎,伊藤 健,さくらクラブ,みどりクラブ,,,,,,,
