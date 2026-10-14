@@ -4,12 +4,14 @@
   const REFRESH_INTERVAL = 10_000;
   const config = window.LIVESCORE_CONFIG;
   const matchContainer = document.getElementById("match-container");
+  const categoryFilter = document.getElementById("category-filter");
   const siteTitle = document.getElementById("site-title");
   const lastUpdated = document.getElementById("last-updated");
   const connectionMessage = document.getElementById("connection-message");
   const statusDot = document.getElementById("status-dot");
   let refreshInProgress = false;
   let hasLoadedData = false;
+  let allMatches = [];
 
   if (config && typeof config.tournamentName === "string" && config.tournamentName.trim()) {
     const title = config.tournamentName.trim();
@@ -139,29 +141,12 @@
     return { home, away, hasScore };
   }
 
-  function makeStatusBadge(status) {
-    const badge = element(
-      "span",
-      "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
-    );
-    if (status === "進行中") {
-      badge.classList.add("border-red-200", "bg-red-50", "text-red-600");
-      const pulse = element("span", "h-1.5 w-1.5 animate-ping rounded-full bg-red-500");
-      pulse.setAttribute("aria-hidden", "true");
-      badge.append(pulse, document.createTextNode("試合中"));
-    } else if (status === "終了") {
-      badge.classList.add("border-slate-200", "bg-slate-100", "text-slate-600");
-      badge.textContent = "終了";
-    }
-    return badge;
-  }
-
-  function makeMatchHeader(match, showStatus = true) {
+  function makeMatchHeader(match) {
     const header = element(
       "div",
       "mb-2 flex items-center justify-between gap-2 border-b border-slate-50 pb-1 text-xs",
     );
-    const labels = element("div", "flex flex-wrap items-center gap-2");
+    const labels = element("div", "flex w-full flex-wrap items-center gap-2");
     const category = match.category || "";
     const number = (match.matchNumber || "").trim();
     const order = match.tieOrder ? `【${match.tieOrder}】` : "";
@@ -184,7 +169,7 @@
     const court = (match.court || "").trim();
     const courtBadge = element(
       "span",
-      "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
+      "ml-auto rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
       court ? (court.endsWith("コート") ? court : `${court}コート`) : "未定",
     );
     if (court) {
@@ -192,9 +177,6 @@
     }
     labels.append(courtBadge);
     header.append(labels);
-    if (showStatus) {
-      header.append(makeStatusBadge(match.status));
-    }
     return header;
   }
 
@@ -325,7 +307,7 @@
     );
     const detailsId = `team-details-${group.id}`;
     summaryButton.setAttribute("aria-controls", detailsId);
-    summaryButton.append(makeMatchHeader(group, false));
+    summaryButton.append(makeMatchHeader(group));
     const homeWon = summary.home > summary.away;
     const awayWon = summary.away > summary.home;
     const teams = element("div", "grid grid-cols-12 items-center gap-1 py-2 sm:gap-2");
@@ -363,12 +345,23 @@
 
     const details = element(
       "div",
-      `space-y-2 border-t border-dashed border-slate-200 px-4 pb-4 pt-3${isExpanded ? "" : " hidden"}`,
+      `grid overflow-hidden transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none ${
+        isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+      }`,
     );
     details.id = detailsId;
-    group.matches.forEach((match) => details.append(makeMatchCard(match, true)));
+    details.setAttribute("aria-hidden", String(!isExpanded));
+    const detailsContent = element(
+      "div",
+      "min-h-0 overflow-hidden space-y-2 border-t border-dashed border-slate-200 px-4 pb-4 pt-3",
+    );
+    group.matches.forEach((match) => detailsContent.append(makeMatchCard(match, true)));
+    details.append(detailsContent);
     summaryButton.addEventListener("click", () => {
-      const nowExpanded = details.classList.toggle("hidden") === false;
+      const nowExpanded = summaryButton.getAttribute("aria-expanded") !== "true";
+      details.classList.toggle("grid-rows-[1fr]", nowExpanded);
+      details.classList.toggle("grid-rows-[0fr]", !nowExpanded);
+      details.setAttribute("aria-hidden", String(!nowExpanded));
       summaryButton.setAttribute("aria-expanded", String(nowExpanded));
       summaryButton.setAttribute(
         "aria-label",
@@ -388,7 +381,7 @@
   function renderMatches(matches) {
     const expandedTeamIds = new Set(
       Array.from(matchContainer.querySelectorAll("[data-team-id]"))
-        .filter((card) => !card.querySelector(".hidden"))
+        .filter((card) => card.querySelector('button[aria-expanded="true"]'))
         .map((card) => card.dataset.teamId),
     );
     const items = [];
@@ -440,6 +433,26 @@
     matchContainer.replaceChildren(fragment);
   }
 
+  function updateCategoryFilter(matches) {
+    const selectedCategory = categoryFilter.value;
+    const categories = [...new Set(
+      matches.map((match) => (match.category || "").trim()).filter(Boolean),
+    )].sort((left, right) => left.localeCompare(right, "ja"));
+
+    const options = [new Option("すべて", ""), ...categories.map((category) => new Option(category, category))];
+    categoryFilter.replaceChildren(...options);
+    categoryFilter.value = categories.includes(selectedCategory) ? selectedCategory : "";
+  }
+
+  function renderSelectedCategory() {
+    const selectedCategory = categoryFilter.value;
+    renderMatches(
+      selectedCategory
+        ? allMatches.filter((match) => (match.category || "").trim() === selectedCategory)
+        : allMatches,
+    );
+  }
+
   function setConnectionState(state, message) {
     connectionMessage.textContent = message;
     statusDot.className = state === "connected"
@@ -473,7 +486,9 @@
         throw new Error(`CSVの取得に失敗しました (HTTP ${response.status})`);
       }
       const matches = readMatches(await response.text());
-      renderMatches(matches);
+      allMatches = matches;
+      updateCategoryFilter(allMatches);
+      renderSelectedCategory();
       hasLoadedData = true;
       lastUpdated.textContent = `最終更新: ${new Intl.DateTimeFormat("ja-JP", {
         hour: "2-digit",
@@ -499,6 +514,7 @@
     }
   }
 
+  categoryFilter.addEventListener("change", renderSelectedCategory);
   fetchMatchData();
   window.setInterval(fetchMatchData, REFRESH_INTERVAL);
 })();
