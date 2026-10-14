@@ -156,45 +156,71 @@
     return badge;
   }
 
-  function makeMatchCard(match, isTeamMatch = false) {
-    const card = element("article", "rounded-lg border border-slate-100 bg-white p-3 shadow-sm");
+  function makeMatchHeader(match, showStatus = true) {
     const header = element(
       "div",
       "mb-2 flex items-center justify-between gap-2 border-b border-slate-50 pb-1 text-xs",
     );
     const labels = element("div", "flex flex-wrap items-center gap-2");
+    const category = match.category || "";
+    const number = (match.matchNumber || "").trim();
     const order = match.tieOrder ? `【${match.tieOrder}】` : "";
+    const matchLabel = category && number
+      ? `${order} ${category}-${number}`
+      : `${order} ${category || number}`;
+
+    if (matchLabel.trim()) {
+      appendBadge(labels, matchLabel.trim(), "text-xs font-bold text-slate-900 sm:text-sm");
+    }
+    if (match.round) {
+      const roundBadge = element(
+        "span",
+        "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
+        match.round,
+      );
+      roundBadge.title = `ラウンド: ${match.round}`;
+      labels.append(roundBadge);
+    }
+    const court = (match.court || "").trim();
+    const courtBadge = element(
+      "span",
+      "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
+      court ? (court.endsWith("コート") ? court : `${court}コート`) : "未定",
+    );
+    if (court) {
+      courtBadge.title = `コート: ${court}`;
+    }
+    labels.append(courtBadge);
+    header.append(labels);
+    if (showStatus) {
+      header.append(makeStatusBadge(match.status));
+    }
+    return header;
+  }
+
+  function makeMatchCard(match, isTeamMatch = false) {
+    const card = element("article", "rounded-lg border border-slate-100 bg-white p-3 shadow-sm");
     if (isTeamMatch) {
+      const header = element(
+        "div",
+        "mb-2 flex items-center justify-between gap-2 border-b border-slate-50 pb-1 text-xs",
+      );
+      const labels = element("div", "flex flex-wrap items-center gap-2");
+      const order = (match.tieOrder || "").trim();
       if (order) {
-        appendBadge(labels, order, "text-xs font-bold text-slate-900 sm:text-sm");
+        const orderBadge = element(
+          "span",
+          "rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700",
+          order,
+        );
+        orderBadge.title = `団体戦のオーダー: ${order}`;
+        labels.append(orderBadge);
       }
       header.append(labels);
+      card.append(header);
     } else {
-      const category = match.category || "";
-      const number = match.matchNumber || "";
-      const matchLabel = category && number
-        ? `${order} ${category}-${number}`
-        : `${order} ${category || number}`;
-
-      if (matchLabel.trim()) {
-        appendBadge(labels, matchLabel.trim(), "text-xs font-bold text-slate-900 sm:text-sm");
-      }
-      if (match.round) {
-        appendBadge(
-          labels,
-          match.round,
-          "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
-        );
-      }
-      const court = (match.court || "").trim();
-      appendBadge(
-        labels,
-        court ? (court.endsWith("コート") ? court : `${court}コート`) : "未定",
-        "rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600",
-      );
-      header.append(labels, makeStatusBadge(match.status));
+      card.append(makeMatchHeader(match));
     }
-    card.append(header);
 
     const { home, away, hasScore } = getGameWins(match);
     const finished = hasScore && (isTeamMatch || match.status === "終了");
@@ -214,10 +240,14 @@
     }
 
     const scoreArea = element("div", "col-span-4 flex items-center justify-center gap-1 sm:gap-2");
-    const winsClass = hasScore
-      ? "min-w-[26px] rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-center text-sm font-extrabold text-slate-800 shadow-sm sm:text-base"
-      : "min-w-[26px] rounded-lg border border-slate-100 bg-slate-50 px-2 py-1 text-center text-sm font-bold text-slate-300 sm:text-base";
-    scoreArea.append(element("span", winsClass, hasScore ? String(home) : "-"));
+    const winsClass = "min-w-[26px] rounded-lg border px-2 py-1 text-center text-sm shadow-sm sm:text-base";
+    const homeWinsClass = hasScore
+      ? `${winsClass} border-slate-200 bg-slate-100 text-slate-800 ${home > away ? "font-bold" : "font-normal"}`
+      : `${winsClass} border-slate-100 bg-slate-50 font-bold text-slate-300`;
+    const awayWinsClass = hasScore
+      ? `${winsClass} border-slate-200 bg-slate-100 text-slate-800 ${away > home ? "font-bold" : "font-normal"}`
+      : `${winsClass} border-slate-100 bg-slate-50 font-bold text-slate-300`;
+    scoreArea.append(element("span", homeWinsClass, hasScore ? String(home) : "-"));
     const scoreList = element(
       "div",
       "flex-1 rounded-lg border border-slate-100 bg-slate-50 py-1 text-center shadow-inner",
@@ -247,7 +277,7 @@
     } else {
       scoreList.append(element("div", "py-1 text-center text-xs text-slate-400", "-"));
     }
-    scoreArea.append(scoreList, element("span", winsClass, hasScore ? String(away) : "-"));
+    scoreArea.append(scoreList, element("span", awayWinsClass, hasScore ? String(away) : "-"));
 
     const awaySide = element("div", "col-span-4 min-w-0 pl-1 text-right");
     const awayName = element("div", "flex flex-wrap items-center justify-end");
@@ -282,26 +312,6 @@
       },
       { home: 0, away: 0 },
     );
-    const metadata = [];
-    const category = group.matches[0].category;
-    const round = group.matches[0].round;
-    const court = group.matches[0].court;
-    const matchNumbers = [...new Set(
-      group.matches.map((match) => (match.matchNumber || "").trim()).filter(Boolean),
-    )];
-    if (category) {
-      metadata.push(category);
-    }
-    if (round) {
-      metadata.push(round);
-    }
-    if (court) {
-      metadata.push(court.endsWith("コート") ? court : `${court}コート`);
-    }
-    if (matchNumbers.length > 0) {
-      metadata.push(matchNumbers.map((number) => `第${number}試合`).join("・"));
-    }
-
     const isExpanded = expandedTeamIds.has(group.id);
     const summaryButton = element(
       "button",
@@ -309,13 +319,13 @@
     );
     summaryButton.type = "button";
     summaryButton.setAttribute("aria-expanded", String(isExpanded));
+    summaryButton.setAttribute(
+      "aria-label",
+      isExpanded ? "対戦スコアの詳細を閉じる" : `対戦スコアの詳細を表示 (${group.matches.length}試合)`,
+    );
     const detailsId = `team-details-${group.id}`;
     summaryButton.setAttribute("aria-controls", detailsId);
-    if (metadata.length > 0) {
-      summaryButton.append(
-        element("div", "mb-3 border-b border-slate-50 pb-2 text-xs font-semibold text-slate-500", metadata.join(" ・ ")),
-      );
-    }
+    summaryButton.append(makeMatchHeader(group, false));
     const homeWon = summary.home > summary.away;
     const awayWon = summary.away > summary.home;
     const teams = element("div", "grid grid-cols-12 items-center gap-1 py-2 sm:gap-2");
@@ -329,11 +339,11 @@
     );
     const teamScore = element("div", "col-span-2 flex items-center justify-center gap-1");
     const teamScoreClass =
-      "min-w-[28px] rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-center text-sm font-extrabold text-slate-800";
+      "min-w-[28px] rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-center text-sm text-slate-800";
     teamScore.append(
-      element("span", teamScoreClass, String(summary.home)),
+      element("span", `${teamScoreClass} ${homeWon ? "font-bold" : "font-normal"}`, String(summary.home)),
       element("span", "text-xs text-slate-400", "-"),
-      element("span", teamScoreClass, String(summary.away)),
+      element("span", `${teamScoreClass} ${awayWon ? "font-bold" : "font-normal"}`, String(summary.away)),
     );
     const awayTeam = element("div", "col-span-5 flex min-w-0 items-center justify-end gap-1 text-right");
     awayTeam.append(
@@ -347,7 +357,7 @@
     const affordance = element(
       "span",
       "mt-3 flex items-center justify-center gap-1 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-500",
-      `${isExpanded ? "▲" : "▼"} ${isExpanded ? "タップして詳細を閉じる" : `タップして対戦スコアを表示 (${group.matches.length}試合)`}`,
+      isExpanded ? "▲" : "▼",
     );
     summaryButton.append(teams, affordance);
 
@@ -360,9 +370,11 @@
     summaryButton.addEventListener("click", () => {
       const nowExpanded = details.classList.toggle("hidden") === false;
       summaryButton.setAttribute("aria-expanded", String(nowExpanded));
-      affordance.textContent = nowExpanded
-        ? "▲ タップして詳細を閉じる"
-        : `▼ タップして対戦スコアを表示 (${group.matches.length}試合)`;
+      summaryButton.setAttribute(
+        "aria-label",
+        nowExpanded ? "対戦スコアの詳細を閉じる" : `対戦スコアの詳細を表示 (${group.matches.length}試合)`,
+      );
+      affordance.textContent = nowExpanded ? "▲" : "▼";
       if (nowExpanded) {
         expandedTeamIds.add(group.id);
       } else {
@@ -393,6 +405,10 @@
           id: teamMatchId,
           homeTeam: match.homeTeam,
           awayTeam: match.awayTeam,
+          category: match.category,
+          matchNumber: match.matchNumber,
+          round: match.round,
+          court: match.court,
           matches: [],
         };
         groups.set(teamMatchId, group);

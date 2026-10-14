@@ -24,7 +24,7 @@
 
 各大会の試合データは個別のGoogleスプレッドシートCSVで管理します。スプレッドシートで **ファイル > 共有 > ウェブに公開** を選び、対象シートをCSV形式で公開した後、発行されたURLをその大会フォルダー内の`config.js`の`csvUrl`に設定してください。設定ファイルと公開CSVは誰でも閲覧できます。パスワードや非公開のスプレッドシートURLは記載しないでください。
 
-CSVの1行目には列名を設定してください。サイトは`matchId`、`teamMatchId`、`matchNumber`、`date`、`category`、`round`、`court`、`homeTeam`、`awayTeam`、`tieOrder`、`homePlayer`、`awayPlayer`、`homeClub`、`awayClub`、`homeScore1`〜`homeScore3`、`awayScore1`〜`awayScore3`、`status`を利用します。個人戦では`teamMatchId`を空欄にし、団体戦では同じ対戦の各試合に共通の`teamMatchId`を設定してください。個人戦は`status`に`進行中`または`終了`を指定できます。団体戦では全対戦のスコアを入力し、`status`列は不要です。
+CSVの1行目には列名を設定してください。サイトは`matchId`、`teamMatchId`、`matchNumber`、`date`、`category`、`round`、`court`、`homeTeam`、`awayTeam`、`tieOrder`、`homePlayer`、`awayPlayer`、`homeClub`、`awayClub`、`homeScore1`〜`homeScore3`、`awayScore1`〜`awayScore3`、`status`を利用します。個人戦では`teamMatchId`を空欄にし、団体戦では同じチーム対戦の各行に共通の`teamMatchId`と`matchNumber`を設定してください。団体戦の`matchNumber`は選手間の各対戦ではなく、チーム同士の対戦に対して1つの番号を付けます。個人戦は`status`に`進行中`または`終了`を指定できます。団体戦では全対戦のスコアを入力し、`status`列は不要です。
 
 ## 大会ごとにサイトを分ける
 
@@ -53,6 +53,6 @@ CSVの1行目には列名を設定してください。サイトは`matchId`、`
 
 - ページ表示時にCSVを読み込み、その後10秒ごとに自動更新します。
 - 団体戦はチーム単位の勝数を表示します。チーム名のスコアカードをタップすると、各対戦のスコアがアコーディオンで開きます。
-- 団体戦の親カードには種目・ラウンド・コート・試合番号を表示し、各対戦には個別のステータスを表示しません。団体戦は全対戦にスコアが入力されていることを前提とします。
+- 団体戦の親カードのヘッダーは個人戦カードと同じ形式で、種目・試合番号、ラウンド、コートを表示します。ラウンドとコートはバッジに加えてツールチップでも確認できます。試合番号はチーム同士の対戦につき1つとし、同じ`teamMatchId`の各行に同じ番号を設定します。各対戦には個別のステータスを表示しません。団体戦は全対戦にスコアが入力されていることを前提とします。
 - 試合データはHTMLとして解釈せずテキスト表示します。
 - 公開CSV URLが未設定、または取得に失敗した場合はページ上に状態を表示します。
